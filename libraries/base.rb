@@ -17,8 +17,10 @@ class Chef
 
   class Provider
     module PythonBase
-      def self.included
-        self.include(Chef::Mixin::ShellOut)
+      def self.included(klass)
+        klass.class_exec do
+          include(Chef::Mixin::ShellOut)
+        end
       end
 
       # Wrap shell_out
