@@ -14,6 +14,8 @@ platforms:
   driver_config:
     box: opscode-ubuntu-10.04
     box_url: https://opscode-vm.s3.amazonaws.com/vagrant/opscode_ubuntu-10.04_provisionerless.box
+  run_list:
+  - recipe[apt]
 - name: centos-6.4
   driver_config:
     box: opscode-centos-6.4
@@ -22,10 +24,14 @@ platforms:
   driver_config:
     box: opscode-centos-5.9
     box_url: https://opscode-vm.s3.amazonaws.com/vagrant/opscode_centos-5.9_provisionerless.box
-  run_list:
-  - recipe[apt]
 
 suites:
 - name: package
   run_list:
   - recipe[python_test::package]
+- name: package_3
+  run_list:
+  - recipe[python_test::package_3]
+  excludes:
+  - centos-6.4
+  - centos-5.9
