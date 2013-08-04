@@ -8,9 +8,23 @@ class Chef
         set_or_return(:virtualenv, arg, kind_of: Chef::Resource)
       end
 
-      def self.attribute_user_and_group
-        self.attribute(:user, regex: Chef::Config[:user_valid_regex])
-        self.attribute(:group, regex: Chef::Config[:group_valid_regex])
+      def self.included(klass)
+        klass.extend(ClassMethods)
+      end
+
+      module ClassMethods
+        def parent_attribute(name, options={})
+          type = options.delete(:type)
+          self.define_method(name) do |arg = nil|
+            arg = resources(type => arg) if arg.is_a?(String)
+            set_or_return(name, arg, {kind_of: Chef::Resource}.merge(options))
+          end
+        end
+
+        def user_and_group_attribute(options={})
+          self.attribute(:user, {regex: Chef::Config[:user_valid_regex]}.merge(options))
+          self.attribute(:group, {regex: Chef::Config[:group_valid_regex]}.merge(options))
+        end
       end
     end
   end

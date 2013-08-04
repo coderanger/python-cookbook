@@ -2,11 +2,14 @@ class Chef
   class Resource
     class PythonPackage < LWRPBase
       include PythonBase
-      default_action :install
-      actions :upgrade, :remove, :purge
+      default_action(:install)
+      actions(:upgrade, :remove, :purge)
 
-      attribute :version, :default => nil
-      attribute_user_and_group
+      attribute(:version, default: nil)
+      attribute(:user, regex: Chef::Config[:user_valid_regex])
+      attribute(:group, regex: Chef::Config[:group_valid_regex])
+      parent_attribute(:python, type: :python)
+      parent_attribute(:virtualenv, type: :python_virtualenv)
     end
   end
 
@@ -19,9 +22,9 @@ class Chef
       end
 
       def load_current_resource
-        @current_resource = Chef::Resource::PythonPackage.new(@new_resource.name)
+        @current_resource = Chef::Resource::PythonPackage.new(new_resource.name)
         result = python_shell_out(%Q{python -c "print __import__('pkg_resources').working_set.by_key.get(#{@current_resource.name.downcase.to_json}).version"})
-        @current_resource.version = result.stdout.strip if result.exitstatus == 0
+        @current_resource.version(result.stdout.strip) if result.exitstatus == 0
         @current_resource
       end
 

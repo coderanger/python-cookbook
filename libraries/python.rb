@@ -4,27 +4,61 @@ Chef::Resource.send(:remove_const, :Python)
 class Chef
   class Resource
     class Python < LWRPBase
+      include PythonBase
       self.resource_name = :python
       default_action(:install)
       actions(:remove)
 
       attribute(:version, kind_of: String, default: nil, name_attribute: true)
       attribute(:implementation, kind_of: [String, Symbol], default: :cpython)
-      # attribute(:user, regex: Chef::Config[:user_valid_regex]) # later
-      # attribute(:group, regex: Chef::Config[:group_valid_regex])
+      user_and_group_attribute()
+
+      def python_bin
+        provider_for_action(self.action.is_a?(Array) ? self.action.first : self.action).python_bin
+      end
+
+      # Allow python_shell_out to work cleanly
+      def python
+        self
+      end
     end
   end
 
   class Provider
-    class Python
+    class Python < Provider
 
-      class Package < Provider
+      def whyrun_supported?
+        true
+      end
+
+      def install_setuptools
+      end
+
+      def install_pip
+      end
+
+      def install_virtualenv
+      end
+
+      def action_install
+        install_python
+        install_setuptools
+        install_pip
+        install_virtualenv
+      end
+
+      # Overridden in subclasses
+      def install_python
+        raise NotImplementedError
+      end
+
+      def action_remove
+        raise NotImplementedError
+      end
+
+      class Package < Python
         Chef::Platform.platforms[:default][:python] = self
         include Chef::DSL::PlatformIntrospection
-
-        def whyrun_supported?
-          true
-        end
 
         def package_name
           @package_name ||= if new_resource.implementation.to_sym == :cpython
@@ -40,6 +74,11 @@ class Chef
           end
         end
 
+        # So this is probably a bad assumption, but it also seems to work pretty uniformly
+        def python_bin
+          File.join('usr', 'bin', package_name)
+        end
+
         def load_current_resource
           @pkg = Chef::Resource::Package.new(self.package_name, new_resource.run_context)
           @pkg_provider = @pkg.provider_for_action(:install)
@@ -53,12 +92,25 @@ class Chef
           @current_resource
         end
 
-        def action_install
+        def install_python
           @pkg.run_action(:install)
         end
 
         def action_remove
           @pkg.run_action(:remove)
+        end
+      end
+
+      class Source < Python
+        # Stub just to explain the structure
+        # In the future this will do installs from source
+
+        def install_python
+          raise NotImplementedError
+        end
+
+        def action_remove
+          raise NotImplementedError
         end
       end
 
