@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 @test "virtualenv should exist" {
-  [ -f /venv ]
+  [ -d /venv ]
 }
 
 @test "virtualenv should be activatable" {
@@ -9,7 +9,7 @@
 }
 
 @test "python2: virtualenv should exist" {
-  [ -f /venv2 ]
+  [ -d /venv2 ]
 }
 
 @test "python2: virtualenv should be activatable" {
@@ -17,9 +17,13 @@
 }
 
 @test "python2b: virtualenv should exist" {
-  [ -f /venv2b ]
+  [ -d /venv2b ]
 }
 
 @test "python2b: virtualenv should be activatable" {
   ( source /venv2b/bin/activate && true )
+}
+
+@test "python2c: virtualenv should be owned by venv2c" {
+  [ "$(stat -c %U /venv2c/venv)" = venv2c ]
 }
