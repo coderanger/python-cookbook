@@ -26,18 +26,47 @@ class Chef
 
   class Provider
     class Python < Provider
+      include PythonBase
 
       def whyrun_supported?
         true
       end
 
       def install_setuptools
+        result = python_shell_out('-c', 'import setuptools')
+        if result.exitstatus && result.exitstatus != 0
+          converge_by('install setuptools via ez_setup.py') do
+            script = PythonHelpers.http_get('https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py')
+            python_shell_out!(input: script)
+          end
+        end
       end
 
       def install_pip
+        # get-pip.py doesn't support 3.0 and 3.1
+        return if @pkg_provider.candidate_version.start_with?('3.0') || @pkg_provider.candidate_version.start_with?('3.1')
+        result = python_shell_out('-c' 'import pip')
+        if result.exitstatus && result.exitstatus != 0
+          converge_by('install pip via get-pip.py') do
+            script = PythonHelpers.http_get('https://raw.github.com/pypa/pip/master/contrib/get-pip.py')
+            python_shell_out!(input: script)
+          end
+        end
       end
 
       def install_virtualenv
+        result = python_shell_out('-c' ,'import virtualenv')
+        if result.exitstatus && result.exitstatus != 0
+          if @pkg_provider.candidate_version.start_with?('3.0') || @pkg_provider.candidate_version.start_with?('3.1')
+            converge_by('install virtualenv via easy_install') do
+              python_shell_out!('-c', 'import sys,setuptools.command.easy_install;sys.exit(setuptools.command.easy_install.main())', 'virtualenv')
+            end
+          else
+            converge_by('install virtualenv via pip') do
+              python_shell_out!('-c', 'import pip,sys; sys.exit(pip.main())', 'install', 'virtualenv')
+            end
+          end
+        end
       end
 
       def action_install
@@ -76,7 +105,7 @@ class Chef
 
         # So this is probably a bad assumption, but it also seems to work pretty uniformly
         def python_bin
-          File.join('usr', 'bin', package_name)
+          ::File.join('', 'usr', 'bin', package_name)
         end
 
         def load_current_resource
