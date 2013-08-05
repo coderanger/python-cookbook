@@ -65,10 +65,6 @@ class Chef
         elsif new_resource.respond_to?(:python) && new_resource.python
           new_resource.python.group
         end
-        # if STDOUT.tty? && !Chef::Config[:daemon] && Chef::Log.info?
-        #   options[:live_stream] = STDOUT
-        # end
-        # Chef::Log.debug(args.inspect)
         shell_out(*args)
       end
 

@@ -1,10 +1,15 @@
 python '2'
 
-# CentOS doesn't have Python 3 packages
-if node['platform'] != 'centos'
+# CentOS doesn't have Python 3 packages, Ubuntu 10.04 is too old
+py3_version = value_for_platform(
+  centos: {default: nil},
+  ubuntu: {default: '3', '10.04' => nil},
+  default: '3',
+)
+if py3_version
   file '/should_py3'
 
-  python '3'
+  python py3_version
 end
 
 # Ubuntu 10.04 has no PyPy packages, CentOS has 1.4 but only for i686

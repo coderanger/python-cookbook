@@ -43,8 +43,6 @@ class Chef
       end
 
       def install_pip
-        # get-pip.py doesn't support 3.0 and 3.1
-        return if @pkg_provider.candidate_version.start_with?('3.0') || @pkg_provider.candidate_version.start_with?('3.1')
         result = python_shell_out('-c' 'import pip')
         if result.exitstatus && result.exitstatus != 0
           converge_by('install pip via get-pip.py') do
@@ -57,14 +55,8 @@ class Chef
       def install_virtualenv
         result = python_shell_out('-c' ,'import virtualenv')
         if result.exitstatus && result.exitstatus != 0
-          if @pkg_provider.candidate_version.start_with?('3.0') || @pkg_provider.candidate_version.start_with?('3.1')
-            converge_by('install virtualenv via easy_install') do
-              python_shell_out!('-c', 'import sys,setuptools.command.easy_install;sys.exit(setuptools.command.easy_install.main())', 'virtualenv')
-            end
-          else
-            converge_by('install virtualenv via pip') do
-              python_shell_out!('-c', 'import pip,sys; sys.exit(pip.main())', 'install', 'virtualenv')
-            end
+          converge_by('install virtualenv via pip') do
+            python_shell_out!('-c', 'import pip,sys; sys.exit(pip.main())', 'install', 'virtualenv')
           end
         end
       end
@@ -114,6 +106,10 @@ class Chef
           @pkg_provider.load_current_resource
           if new_resource.version && !(@pkg_provider.candidate_version && @pkg_provider.candidate_version.start_with?(new_resource.version))
             raise "Unable to find approriate package for #{new_resource.version}: #{@pkg.name}-#{@pkg_provider.candidate_version}"
+          end
+          if @pkg_provider.candidate_version.start_with?('3.0') || @pkg_provider.candidate_version.start_with?('3.1')
+            # get-pip, and possibly other things just don't work on 3.0/1
+            raise "Python version #{@pkg_provider.candidate_version} not supported"
           end
           @current_resource = Chef::Resource::Python.new(new_resource.name)
           m = /^(\d(\.\d(\.\d)?)?)/.match(@pkg_provider.current_resource.version)
